@@ -9,23 +9,30 @@ import (
 // 		- Opens both an output and error file based on the locations provided
 // 		- Sets Stdout to the output file and Stderr to the error file
 // 		- Sets the output for the log package to the new Stderr
-func New(outLoc, errLoc string) *OutputBandit {
-	out, _ := os.Create(outLoc)
-	err, _ := os.Create(errLoc)
+func New(outLoc, errLoc string) (*OutputBandit, error) {
+	outF, err := os.Create(outLoc)
+	if err != nil {
+		return nil, err
+	}
+
+	errF, err := os.Create(errLoc)
+	if err != nil {
+		return nil, err
+	}
 
 	o := OutputBandit{
-		out: out,
-		err: err,
+		out: outF,
+		err: errF,
 
 		outOrig: os.Stdout,
 		errOrig: os.Stderr,
 	}
 
-	os.Stdout = out
-	os.Stderr = err
-	log.SetOutput(err)
+	os.Stdout = outF
+	os.Stderr = errF
+	log.SetOutput(errF)
 
-	return &o
+	return &o, nil
 }
 
 type OutputBandit struct {
