@@ -2,7 +2,6 @@ package outputBandit
 
 import (
 	"os"
-	"sync"
 )
 
 func New(outLoc, errLoc string) *OutputBandit {
@@ -21,8 +20,6 @@ func New(outLoc, errLoc string) *OutputBandit {
 }
 
 type OutputBandit struct {
-	sync.RWMutex
-
 	out *os.File
 	err *os.File
 }
