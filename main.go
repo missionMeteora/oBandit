@@ -5,15 +5,12 @@ import (
 	"syscall"
 )
 
-const (
-	outTmpLoc = ".bndtOut"
-	errTmpLoc = ".bndtErr"
-)
-
 // Creates and returns a new instance of Output Bandit:
 // 		- Opens both an output and error file based on the locations provided
-// 		- Sets Stdout to the output file and Stderr to the error file
-// 		- Sets the output for the log package to the new Stderr
+// 		- Sets reference to original Stdout and Stderr files
+// 		- Sets file descriptor values for original Stdout and Stderr
+// 		- Calls set files, set tmp files, and hijack
+// 		- Returns pointer to OutputBandit struct
 func New(outLoc, errLoc string) (*OutputBandit, error) {
 	o := OutputBandit{
 		outOrig:   os.Stdout,
@@ -40,12 +37,18 @@ type OutputBandit struct {
 	outOrigFd int
 	errOrigFd int
 
-	outTmp   *os.File
-	errTmp   *os.File
-	outTmpFd int
-	errTmpFd int
+	outTmpLoc string
+	errTmpLoc string
+	outTmp    *os.File
+	errTmp    *os.File
+	outTmpFd  int
+	errTmpFd  int
 }
 
+// Sets the files which will be used as the new Stdout and Stderr:
+// 		- Creates out and err files based on provided locs
+// 		- Sets a reference to the out and err files
+// 		- Sets the file descriptor value for the out and err files
 func (o *OutputBandit) setFiles(outLoc, errLoc string) error {
 	outF, err := os.Create(outLoc)
 	if err != nil {
@@ -66,7 +69,14 @@ func (o *OutputBandit) setFiles(outLoc, errLoc string) error {
 	return nil
 }
 
+// Sets the tmp files which will be used as the file descriptor placeholders:
+// 		- Creates outTmp and errTmp files which are placed in the TempDir
+// 		- Sets a reference to the out and err files
+// 		- Sets the file descriptor value for the outTmp and errTmp files
 func (o *OutputBandit) setTmpFiles() error {
+	outTmpLoc = os.TempDir() + ".bndtOut"
+	errTmpLoc = os.TempDir() + ".bndtErr"
+
 	outTmpF, err := os.Create(outTmpLoc)
 	if err != nil {
 		return err
@@ -77,12 +87,19 @@ func (o *OutputBandit) setTmpFiles() error {
 		return err
 	}
 
+	o.outTmpLoc = outTmpLoc
+	o.errTmpLoc = errTmpLoc
 	o.outTmp = outTmpF
 	o.errTmp = errTmpF
 
 	return nil
 }
 
+// Hijacks the Stdout and Stderr:
+//		- Sets the orig Stdout file descriptor value to the outTmp file descriptor value
+// 		- Sets the new out file descriptor value to the original Stdout file descriptor value
+//		- Sets the orig Stderr file descriptor value to the errTmp file descriptor value
+// 		- Sets the new err file descriptor value to the original Stderr file descriptor value
 func (o *OutputBandit) hijack() {
 	syscall.Dup2(o.outOrigFd, o.outTmpFd)
 	syscall.Dup2(o.outFd, o.outOrigFd)
@@ -91,6 +108,11 @@ func (o *OutputBandit) hijack() {
 	syscall.Dup2(o.errFd, o.errOrigFd)
 }
 
+// Un-Hijacks the Stdout and Stderr:
+//		- Sets the orig Stdout file descriptor value to its original value
+// 		- Sets the new out file descriptor value to its original value
+//		- Sets the orig Stderr file descriptor value to its original value
+// 		- Sets the new err file descriptor value to its original value
 func (o *OutputBandit) unhijack() {
 	syscall.Dup2(o.outOrigFd, o.outFd)
 	syscall.Dup2(o.outTmpFd, o.outOrigFd)
@@ -110,6 +132,6 @@ func (o *OutputBandit) Close() {
 	o.outTmp.Close()
 	o.errTmp.Close()
 
-	os.Remove(outTmpLoc)
-	os.Remove(errTmpLoc)
+	os.Remove(o.outTmpLoc)
+	os.Remove(o.errTmpLoc)
 }
