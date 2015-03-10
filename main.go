@@ -3,6 +3,7 @@ package outputBandit
 import (
 	"log"
 	"os"
+	"syscall"
 )
 
 // Creates and returns a new instance of Output Bandit:
@@ -31,6 +32,7 @@ func New(outLoc, errLoc string) (*OutputBandit, error) {
 	os.Stdout = outF
 	os.Stderr = errF
 	log.SetOutput(errF)
+	syscall.Dup2(int(errF.Fd()), 2)
 
 	return &o, nil
 }
