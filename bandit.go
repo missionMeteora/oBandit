@@ -1,4 +1,4 @@
-package outputBandit
+package oBandit
 
 import (
 	"os"
@@ -74,8 +74,8 @@ func (o *OutputBandit) setFiles(outLoc, errLoc string) error {
 // 		- Sets a reference to the out and err files
 // 		- Sets the file descriptor value for the outTmp and errTmp files
 func (o *OutputBandit) setTmpFiles() error {
-	outTmpLoc = os.TempDir() + ".bndtOut"
-	errTmpLoc = os.TempDir() + ".bndtErr"
+	outTmpLoc := os.TempDir() + ".bndtOut"
+	errTmpLoc := os.TempDir() + ".bndtErr"
 
 	outTmpF, err := os.Create(outTmpLoc)
 	if err != nil {
