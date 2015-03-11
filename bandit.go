@@ -10,9 +10,9 @@ import (
 // 		- Sets reference to original Stdout and Stderr files
 // 		- Sets file descriptor values for original Stdout and Stderr
 // 		- Calls set files, set tmp files, and hijack
-// 		- Returns pointer to OutputBandit struct
-func New(outLoc, errLoc string) (*OutputBandit, error) {
-	o := OutputBandit{
+// 		- Returns pointer to Bandit struct
+func New(outLoc, errLoc string) (*Bandit, error) {
+	o := Bandit{
 		outOrig:   os.Stdout,
 		errOrig:   os.Stderr,
 		outOrigFd: int(os.Stdout.Fd()),
@@ -26,7 +26,7 @@ func New(outLoc, errLoc string) (*OutputBandit, error) {
 	return &o, nil
 }
 
-type OutputBandit struct {
+type Bandit struct {
 	out   *os.File
 	err   *os.File
 	outFd int
@@ -49,7 +49,7 @@ type OutputBandit struct {
 // 		- Creates out and err files based on provided locs
 // 		- Sets a reference to the out and err files
 // 		- Sets the file descriptor value for the out and err files
-func (o *OutputBandit) setFiles(outLoc, errLoc string) error {
+func (o *Bandit) setFiles(outLoc, errLoc string) error {
 	outF, err := os.Create(outLoc)
 	if err != nil {
 		return err
@@ -73,7 +73,7 @@ func (o *OutputBandit) setFiles(outLoc, errLoc string) error {
 // 		- Creates outTmp and errTmp files which are placed in the TempDir
 // 		- Sets a reference to the out and err files
 // 		- Sets the file descriptor value for the outTmp and errTmp files
-func (o *OutputBandit) setTmpFiles() error {
+func (o *Bandit) setTmpFiles() error {
 	outTmpLoc := os.TempDir() + ".bndtOut"
 	errTmpLoc := os.TempDir() + ".bndtErr"
 
@@ -100,7 +100,7 @@ func (o *OutputBandit) setTmpFiles() error {
 // 		- Sets the new out file descriptor value to the original Stdout file descriptor value
 //		- Sets the orig Stderr file descriptor value to the errTmp file descriptor value
 // 		- Sets the new err file descriptor value to the original Stderr file descriptor value
-func (o *OutputBandit) hijack() {
+func (o *Bandit) hijack() {
 	syscall.Dup2(o.outOrigFd, o.outTmpFd)
 	syscall.Dup2(o.outFd, o.outOrigFd)
 
@@ -113,7 +113,7 @@ func (o *OutputBandit) hijack() {
 // 		- Sets the new out file descriptor value to its original value
 //		- Sets the orig Stderr file descriptor value to its original value
 // 		- Sets the new err file descriptor value to its original value
-func (o *OutputBandit) unhijack() {
+func (o *Bandit) unhijack() {
 	syscall.Dup2(o.outOrigFd, o.outFd)
 	syscall.Dup2(o.outTmpFd, o.outOrigFd)
 
@@ -125,7 +125,7 @@ func (o *OutputBandit) unhijack() {
 // 		- Sets global Stdout and Stderr back to the original
 // 		- Sets the output for the log package to the original Stderr
 // 		- Closes the output and error file
-func (o *OutputBandit) Close() {
+func (o *Bandit) Close() {
 	o.unhijack()
 	o.out.Close()
 	o.err.Close()
