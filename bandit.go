@@ -19,8 +19,14 @@ func New(outLoc, errLoc string) (*Bandit, error) {
 		errOrigFd: int(os.Stderr.Fd()),
 	}
 
-	o.setFiles(outLoc, errLoc)
-	o.setTmpFiles()
+	if err := o.setFiles(outLoc, errLoc); err != nil {
+		return nil, err
+	}
+
+	if err := o.setTmpFiles(); err != nil {
+		return nil, err
+	}
+
 	o.hijack()
 
 	return &o, nil
